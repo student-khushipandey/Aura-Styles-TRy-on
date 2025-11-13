@@ -1,7 +1,6 @@
 
 
-```markdown
-##** 👗 Aura Styles – Virtual Try-On Web App**##
+### 👗 Aura Styles – Virtual Try-On Web App
 
 **Aura Styles** is an interactive **AI-powered virtual try-on web app** that allows users to **try on clothes in real time** using their webcam.  
 The app uses **OpenCV + MediaPipe** for **body landmark detection** (shoulders and waist) and overlays selected clothing images dynamically on the user’s live video feed.
@@ -158,15 +157,6 @@ The top image fits naturally from **shoulder to waist**, scaling dynamically as 
 👤 + 👕  ➜  Real-time overlay displayed on camera feed
 ```
 
-Screenshot example (optional):
-
-```
-results/
- └── tryon_preview.png
-```
-
----
-
 ## 🌍 Deployment Guide
 
 ### ✅ Frontend Deployment (Vercel)
@@ -260,13 +250,6 @@ Built with ❤️ using:
 
 ---
 
-## 📸 Output Preview
-
-| Before                          | After                                 |
-| ------------------------------- | ------------------------------------- |
-| ![Before](./results/before.png) | ![After](./results/tryon_preview.png) |
-
----
 
 ### ⭐ If you like this project, give it a **star** on GitHub!
 
