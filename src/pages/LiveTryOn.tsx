@@ -1,164 +1,84 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { toast } from "react-hot-toast";
 
-interface CartItem { name: string; }
+const CLOTHES = [
+  "top1_front.png",
+  "top4_front.png",
+  "top5_front.png",
+  "top6_front.png",
+];
 
-const LiveTryOn: React.FC = () => {
+export default function LiveTryOn() {
   const [isStreaming, setIsStreaming] = useState(false);
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [wishlist, setWishlist] = useState<CartItem[]>([]);
+  const [selectedCloth, setSelectedCloth] = useState<string | null>(null);
 
-  // Clothes dataset
-  const clothes: string[] = ["top1_front.png", "top4_front.png", "top5_front.png", "top6_front.png"];
-
-  // --- Camera controls ---
   const startCamera = () => {
     setIsStreaming(true);
-    toast.success("Camera started ✅");
-  };
-  const stopCamera = () => {
-    setIsStreaming(false);
-    toast("Camera stopped 📴");
+    toast.success("Camera started 🎥");
   };
 
-  // --- Select clothing ---
-  const selectClothing = (index: number) => {
-    fetch(`http://localhost:5000/select/${index}`, { method: "POST" })
-      .then(res => res.json())
-      .then(data => {
-        if (data.status === "ok") {
-          setSelectedIndex(index);
-          toast.success(`Selected: ${data.file}`);
-        } else toast.error(data.message);
-      })
-      .catch(() => toast.error("Failed to select clothing"));
-  };
+  const tryOnCloth = async (filename: string) => {
+    setSelectedCloth(filename);
+    try {
+      const res = await fetch("http://localhost:5000/try_on", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cloth_filename: filename }),
+      });
+      if (!res.ok) throw new Error("Try-on failed");
 
-  // --- Add to cart ---
-  const addToCart = (name: string) => {
-    fetch("http://localhost:5000/cart", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ item: name }),
-    })
-      .then(res => res.json())
-      .then(data => {
-        setCart(data.cart.map((i: string) => ({ name: i })));
-        toast.success(`${name} added to Cart`);
-      })
-      .catch(() => toast.error("Failed to add to Cart"));
-  };
+      // Force refresh the video stream
+      const videoFeed = document.getElementById("video-feed") as HTMLImageElement;
+      if (videoFeed) {
+        videoFeed.src = `http://localhost:5000/video_feed?t=${Date.now()}`;
+      }
 
-  // --- Add to wishlist ---
-  const addToWishlist = (name: string) => {
-    fetch("http://localhost:5000/wishlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ item: name }),
-    })
-      .then(res => res.json())
-      .then(data => {
-        setWishlist(data.wishlist.map((i: string) => ({ name: i })));
-        toast.success(`${name} added to Wishlist`);
-      })
-      .catch(() => toast.error("Failed to add to Wishlist"));
+      toast.success(`Now trying on ${filename} 👕`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Try-on failed ❌");
+    }
   };
-
-  // --- Fetch current cart & wishlist on mount ---
-  useEffect(() => {
-    fetch("http://localhost:5000/cart")
-      .then(res => res.json())
-      .then(data => setCart(data.map((i: string) => ({ name: i }))));
-    fetch("http://localhost:5000/wishlist")
-      .then(res => res.json())
-      .then(data => setWishlist(data.map((i: string) => ({ name: i }))));
-  }, []);
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <h2 className="text-xl font-semibold text-gray-800">Live Try-On</h2>
+    <div className="flex flex-col items-center gap-6 p-4">
+      <h1 className="text-2xl font-bold text-gray-800">👕 Virtual Try-On</h1>
 
-      {/* Camera feed */}
-      {isStreaming ? (
-        <img
-          src="http://localhost:5000/video_feed"
-          alt="Live Stream"
-          className="rounded-2xl shadow-md border border-gray-300"
-          width={480}
-          height={360}
-        />
+      {!isStreaming ? (
+        <button
+          onClick={startCamera}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl shadow-md"
+        >
+          Start Camera
+        </button>
       ) : (
-        <div className="w-[480px] h-[360px] flex items-center justify-center border border-gray-300 rounded-xl text-gray-500">
-          Stream not started
+        <div className="rounded-2xl overflow-hidden border-2 border-gray-300">
+          <img
+            id="video-feed"
+            src="http://localhost:5000/video_feed"
+            alt="Live Stream"
+            className="w-[480px] h-[360px] object-cover"
+          />
         </div>
       )}
 
-      {/* Camera control buttons */}
-      <div className="flex gap-4 mt-2">
-        {!isStreaming ? (
-          <button
-            onClick={startCamera}
-            className="px-4 py-2 bg-green-500 text-white rounded-xl hover:bg-green-600 transition"
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {CLOTHES.map((cloth) => (
+          <div
+            key={cloth}
+            onClick={() => tryOnCloth(cloth)}
+            className={`cursor-pointer border-2 rounded-xl overflow-hidden hover:scale-105 transition-all ${
+              selectedCloth === cloth ? "border-blue-500" : "border-gray-300"
+            }`}
           >
-            Start Camera
-          </button>
-        ) : (
-          <button
-            onClick={stopCamera}
-            className="px-4 py-2 bg-red-500 text-white rounded-xl hover:bg-red-600 transition"
-          >
-            Stop Camera
-          </button>
-        )}
-      </div>
-
-      {/* Clothes selection */}
-      <div className="flex flex-wrap gap-2 mt-4">
-        {clothes.map((file, index) => (
-          <div key={index} className="border p-2 rounded-lg flex flex-col items-center">
-            <button
-              onClick={() => selectClothing(index)}
-              className={`px-3 py-1 rounded-xl border ${selectedIndex === index ? "border-blue-500 bg-blue-100" : "border-gray-300"}`}
-            >
-              {file}
-            </button>
-            <div className="flex gap-2 mt-1">
-              <button
-                onClick={() => addToCart(file)}
-                className="px-2 py-1 bg-green-400 text-white rounded hover:bg-green-500"
-              >
-                Add to Cart
-              </button>
-              <button
-                onClick={() => addToWishlist(file)}
-                className="px-2 py-1 bg-yellow-400 text-white rounded hover:bg-yellow-500"
-              >
-                Wishlist
-              </button>
-            </div>
+            <img
+              src={`http://localhost:5000/clothes_images/${cloth}`}
+              alt={cloth}
+              className="w-full h-48 object-cover"
+            />
           </div>
         ))}
       </div>
-
-      {/* Cart & Wishlist display */}
-      <div className="mt-4 w-full max-w-md">
-        <h3 className="font-semibold text-lg">Cart:</h3>
-        <ul className="list-disc pl-6">
-          {cart.map((item, i) => (
-            <li key={i}>{item.name}</li>
-          ))}
-        </ul>
-
-        <h3 className="font-semibold text-lg mt-2">Wishlist:</h3>
-        <ul className="list-disc pl-6">
-          {wishlist.map((item, i) => (
-            <li key={i}>{item.name}</li>
-          ))}
-        </ul>
-      </div>
     </div>
   );
-};
-
-export default LiveTryOn;
+}
